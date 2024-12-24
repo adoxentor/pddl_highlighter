@@ -111,6 +111,12 @@
                     transparent calc({{INDENT}}ch)
                 );
             }
+            .cm-keyword {
+                font-weight: normal;
+            }
+            .cm-keyword[data-word="define"] {
+                font-weight: bold !important;
+            }
         `;
         document.head.appendChild(style);
 
@@ -124,7 +130,7 @@
                 editor.setOption("matchBrackets", true);
                 editor.setOption("autoCloseBrackets", true);
                 
-                // Track unclosed parentheses
+                // Track unclosed parentheses and handle keyword styling
                 editor.on("change", function(cm, change) {
                     var parenLevel = 0;
                     var lineStarts = [];
@@ -172,6 +178,25 @@
                                 element.removeAttribute('data-unclosed');
                                 element.style.background = '';
                             }
+                        }
+                    });
+
+                    // Add data attribute for 'define' keyword
+                    cm.eachLine(function(line) {
+                        var lineText = line.text;
+                        if (lineText.includes('define')) {
+                            var lineHandle = cm.getLineHandle(line.lineNo());
+                            var tokens = cm.getLineTokens(line.lineNo());
+                            tokens.forEach(function(token) {
+                                if (token.type === 'keyword' && token.string === 'define') {
+                                    var span = lineHandle.markedSpans || [];
+                                    span.forEach(function(s) {
+                                        if (s.marker.className === 'cm-keyword') {
+                                            s.marker.attributes = {'data-word': 'define'};
+                                        }
+                                    });
+                                }
+                            });
                         }
                     });
                 });
