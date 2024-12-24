@@ -1,5 +1,5 @@
 from IPython.core.magic import register_cell_magic
-from IPython.display import display, HTML
+from IPython.display import display, HTML, Javascript
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import HtmlFormatter
@@ -7,6 +7,13 @@ from pygments.styles import get_all_styles
 import ipywidgets as widgets
 import re
 import os
+import pkg_resources
+
+def get_js_code():
+    """Load the JavaScript code from the static file."""
+    js_path = pkg_resources.resource_filename('pddl_highlighter', 'static/pddl.js')
+    with open(js_path, 'r') as f:
+        return f.read()
 
 def format_pddl(code):
     """Format PDDL code with proper indentation."""
@@ -189,8 +196,12 @@ def pddl_magic(line, cell, shell=None):
 
 def load_pddl_magic():
     """
-    Register the PDDL magic command in Jupyter.
+    Register the PDDL magic command in Jupyter and load the JavaScript.
     """
+    # Load and execute the JavaScript code
+    js_code = get_js_code()
+    display(Javascript(js_code))
+    
     @register_cell_magic
     def PDDL(line, cell):
         return pddl_magic(line, cell)
