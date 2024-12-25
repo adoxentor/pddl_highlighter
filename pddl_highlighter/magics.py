@@ -203,6 +203,9 @@ def load_pddl_magic():
     with open(js_path, 'r') as f:
         js_code = f.read()
     
+    # Escape backticks and curly braces in the JavaScript code
+    js_code = js_code.replace('`', '\\`').replace('{', '{{').replace('}', '}}')
+    
     # Create a script element and append it to the document head
     script_element = f"""
     (function() {{
