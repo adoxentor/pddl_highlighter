@@ -1,7 +1,15 @@
 // Create a custom mode for PDDL in Jupyter's CodeMirror editor
-require(['codemirror/lib/codemirror'], function(CodeMirror) {
-    console.log("Starting PDDL highlighter initialization with RequireJS");
+require(['@jupyterlab/codemirror', 'codemirror'], function(jupyterlab_codemirror, CodeMirror) {
+    console.log("Starting PDDL highlighter initialization for JupyterLab");
+    
+    // Use the CodeMirror instance from JupyterLab
+    CodeMirror = CodeMirror || window.CodeMirror;
     console.log("CodeMirror loaded:", CodeMirror);
+
+    if (!CodeMirror) {
+        console.error("CodeMirror not found in JupyterLab environment");
+        return;
+    }
 
     CodeMirror.defineMode("pddl", function(config, parserConfig) {
         var keywords = "define domain problem predicates actions precondition effect";
@@ -211,24 +219,58 @@ require(['codemirror/lib/codemirror'], function(CodeMirror) {
 
     // Wait for Jupyter to be ready
     function initializeWhenReady() {
-        console.log("Checking if Jupyter is ready...");
-        if (window.Jupyter && window.Jupyter.notebook) {
-            console.log("Jupyter is ready, setting up existing cells");
-            // Set up all existing cells
-            var cells = Jupyter.notebook.get_cells();
-            cells.forEach(setupPDDLEditor);
+        console.log("Checking if JupyterLab is ready...");
+        
+        // For JupyterLab
+        if (window.jupyterapp && window.jupyterapp.shell) {
+            console.log("JupyterLab detected, setting up notebook panel handler");
             
-            // Set up new cells as they're created
-            console.log("Setting up cell creation handler");
-            Jupyter.notebook.events.on('create.Cell', function(event, data) {
-                console.log("New cell created, setting up PDDL editor");
-                setupPDDLEditor(data.cell);
+            // Watch for new notebook panels
+            window.jupyterapp.shell.layoutModified.connect(function() {
+                var widgets = window.jupyterapp.shell.widgets('main');
+                var iter = widgets.next();
+                
+                while (iter) {
+                    var widget = iter.value;
+                    if (widget.content && widget.content.model && widget.content.model.cells) {
+                        console.log("Found notebook widget, setting up cells");
+                        widget.content.model.cells.forEach(function(cell) {
+                            if (cell.type === 'code') {
+                                setupPDDLEditor(cell);
+                            }
+                        });
+                        
+                        // Watch for new cells
+                        widget.content.model.cells.changed.connect(function(cells, change) {
+                            if (change.type === 'add') {
+                                change.newValues.forEach(function(cell) {
+                                    if (cell.type === 'code') {
+                                        setupPDDLEditor(cell);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                    iter = widgets.next();
+                }
             });
         } else {
-            setTimeout(initializeWhenReady, 100);
+            // For classic Jupyter Notebook
+            if (window.Jupyter && window.Jupyter.notebook) {
+                console.log("Classic Jupyter Notebook detected, setting up cells");
+                var cells = Jupyter.notebook.get_cells();
+                cells.forEach(setupPDDLEditor);
+                
+                Jupyter.notebook.events.on('create.Cell', function(event, data) {
+                    console.log("New cell created, setting up PDDL editor");
+                    setupPDDLEditor(data.cell);
+                });
+            } else {
+                setTimeout(initializeWhenReady, 100);
+            }
         }
     }
 
-    console.log("Starting Jupyter initialization check");
+    console.log("Starting initialization check");
     initializeWhenReady();
 });
