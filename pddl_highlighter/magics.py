@@ -199,8 +199,21 @@ def load_pddl_magic():
     Register the PDDL magic command in Jupyter and load the JavaScript.
     """
     # Load and execute the JavaScript code
-    js_code = get_js_code()
-    display(Javascript(js_code))
+    js_path = pkg_resources.resource_filename('pddl_highlighter', 'static/pddl.js')
+    with open(js_path, 'r') as f:
+        js_code = f.read()
+    
+    # Create a script element and append it to the document head
+    script_element = f"""
+    (function() {{
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.text = `{js_code}`;
+        document.head.appendChild(script);
+    }})();
+    """
+    
+    display(Javascript(script_element))
     
     @register_cell_magic
     def PDDL(line, cell):
